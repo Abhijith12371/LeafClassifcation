@@ -1,0 +1,17 @@
+{
+  "healthy maize leaf": 0,
+  "healthy rice leaf": 1,
+  "healthy wheat leaf": 2,
+  "maize common rust leaf": 3,
+  "maize grey leaf spot": 4,
+  "maize northern leaf blight": 5,
+  "maize southern rust": 6,
+  "rice bacterial blight leaf": 7,
+  "rice bacterial leaf streak": 8,
+  "rice blast disease leaf": 9,
+  "rice brown spot leaf": 10,
+  "wheat leaf rust": 11,
+  "wheat powdery mildew leaf": 12,
+  "wheat stripe rust": 13,
+  "wheat tan spot leaf": 14
+}
