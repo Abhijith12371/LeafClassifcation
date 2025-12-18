@@ -1,3 +1,4 @@
+
 import os
 import tensorflow as tf
 from tensorflow.keras.applications import MobileNetV2
@@ -18,7 +19,7 @@ EPOCHS = 50  # Increased
 LEARNING_RATE = 1e-4
 
 BASE_DIR = "plant_dataset"
-# CRITICAL FIX: Use final_dataset with proper train/val split
+# Use final_dataset with proper train/val split
 TRAIN_DIR = os.path.join(BASE_DIR, "final_dataset", "train")
 VAL_DIR = os.path.join(BASE_DIR, "final_dataset", "val")
 MODEL_SAVE_PATH = "plant_disease_model_final.keras"
@@ -117,11 +118,8 @@ def train():
     # =======================
     model = build_model(num_classes)
     
-    # PAPER CONFIGURATION: SGD with Momentum
-    optimizer = tf.keras.optimizers.SGD(learning_rate=0.001, momentum=0.9)
-    
     model.compile(
-        optimizer=optimizer,
+        optimizer=Adam(learning_rate=LEARNING_RATE),
         loss="categorical_crossentropy",
         metrics=["accuracy"]
     )
@@ -144,15 +142,15 @@ def train():
         ),
         EarlyStopping(
             monitor="val_accuracy",
-            patience=20, # Increased patience for SGD (converges slower)
+            patience=10,
             restore_best_weights=True,
             verbose=1
         ),
         ReduceLROnPlateau(
             monitor="val_loss",
             factor=0.5,
-            patience=10,
-            min_lr=1e-6,
+            patience=5,
+            min_lr=1e-7,
             verbose=1
         )
     ]
@@ -166,7 +164,7 @@ def train():
     
     history1 = model.fit(
         train_generator,
-        epochs=30, # Increased head training
+        epochs=20,
         validation_data=val_generator,
         callbacks=callbacks,
         verbose=1
@@ -190,23 +188,33 @@ def train():
     head_layers_count = 7
     base_layers_count = len(model.layers) - head_layers_count
     
-    # Unfreeze top 50 layers
+    # We want to fine-tune the top 50 layers of the BASE model
     fine_tune_start = base_layers_count - 50
     if fine_tune_start < 0: fine_tune_start = 0
     
+    print(f"   Total layers: {len(model.layers)}")
+    print(f"   Base model layers: {base_layers_count}")
+    print(f"   Fine-tuning starts at layer: {fine_tune_start}")
+    print("   (Keeping BatchNormalization layers FROZEN in base)")
+    
+    # Iterate through the base layers
     for i, layer in enumerate(model.layers[:base_layers_count]):
-        # Freeze if below cutoff OR is BatchNormalization
+        # Freeze if:
+        # 1. It is below our fine-tune cutoff
+        # 2. OR it is a BatchNormalization layer (crucial for MobileNetV2)
         if i < fine_tune_start or isinstance(layer, BatchNormalization):
             layer.trainable = False
         else:
             layer.trainable = True
             
+    # The head layers (last 7) remain trainable (from model.trainable=True)
+
     trainable_count = len([l for l in model.layers if l.trainable])
     print(f"   Trainable layers: {trainable_count}")
     
-    # Recompile with SGD (Lower LR for fine-tuning)
+    # Recompile with lower learning rate
     model.compile(
-        optimizer=tf.keras.optimizers.SGD(learning_rate=0.0001, momentum=0.9),
+        optimizer=Adam(learning_rate=1e-5),
         loss="categorical_crossentropy",
         metrics=["accuracy"]
     )
@@ -214,7 +222,7 @@ def train():
     # Update callbacks for phase 2
     callbacks[1] = EarlyStopping(
         monitor="val_accuracy",
-        patience=20,
+        patience=15,
         restore_best_weights=True,
         verbose=1
     )
@@ -222,7 +230,7 @@ def train():
     history2 = model.fit(
         train_generator,
         initial_epoch=history1.epoch[-1],
-        epochs=100, # Per paper
+        epochs=EPOCHS,
         validation_data=val_generator,
         callbacks=callbacks,
         verbose=1
@@ -240,28 +248,6 @@ def train():
     with open("class_indices.json", "w") as f:
         json.dump(train_generator.class_indices, f, indent=2)
     print(f"   Class mapping saved to: class_indices.json")
-    
-    # =======================
-    # TRAINING SUMMARY
-    # =======================
-    print("\n" + "="*50)
-    print("📊 TRAINING SUMMARY")
-    print("="*50)
-    
-    all_train_acc = history1.history['accuracy'] + history2.history['accuracy']
-    all_val_acc = history1.history['val_accuracy'] + history2.history['val_accuracy']
-    
-    print(f"Best Training Accuracy: {max(all_train_acc):.4f}")
-    print(f"Best Validation Accuracy: {max(all_val_acc):.4f}")
-    print(f"Final Training Accuracy: {all_train_acc[-1]:.4f}")
-    print(f"Final Validation Accuracy: {all_val_acc[-1]:.4f}")
-    
-    # Check for overfitting
-    if all_train_acc[-1] - all_val_acc[-1] > 0.15:
-        print("\n⚠️  Warning: Possible overfitting detected!")
-        print("   Consider adding more data or increasing dropout.")
-    
-    print("\n🎉 Ready for real-time detection!")
 
 if __name__ == "__main__":
     train()
