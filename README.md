@@ -104,5 +104,5 @@ Running the system generates:
 - `classification_report_heatmap.png`: Quality visualization.
 
 ---
-*Verified by AI Assistant "Antigravity" | Evaluation Date: Dec 20, 2025*
+
 
