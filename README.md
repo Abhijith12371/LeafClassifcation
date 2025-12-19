@@ -6,6 +6,22 @@ This project implements a comprehensive pipeline for detecting diseases in Maize
 
 ---
 
+## 📊 Dataset Statistics
+The system processed a huge volume of image data to ensure high model generalization:
+
+| Component | Image Count | Description |
+| :--- | :--- | :--- |
+| **Total Files Cached** | **59,379** | Includes raw, processed, and augmented variants. |
+| **Final Dataset** | **30,201** | Refined images used for active training and testing. |
+| **Augmented Set** | 25,658 | Variations created to simulate different field conditions. |
+| **Raw Samples** | ~1,760 | Original source images scraped from the web. |
+
+> [!NOTE]
+> The dataset follows a **70/15/15** split, providing approximately **3,777 images** for independent testing.
+
+---
+
+
 ## 🛠️ System Architecture
 
 ### 1. The Core Model: EfficientNetV2-B0
