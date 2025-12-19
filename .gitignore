@@ -1,3 +1,4 @@
-plant_dataset
-plant_disease_model_final.keras
+plant_dataset/
+*.keras
+*.h5
 class_indices.json
